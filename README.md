@@ -2,6 +2,8 @@ autoCpp
 =======
 By David Vaughan
 
+**Not yet functional**
+
 Take a simple C++ header file and generate a .cpp file template from the
 specifications.
 Intended for use with my school projects and homework, but should work for any
