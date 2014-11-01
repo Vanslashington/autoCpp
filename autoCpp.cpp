@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <cstdio>
 #include <string>
 #include <sstream>
 #include <vector>
@@ -32,6 +33,11 @@ void getFunctionLines(vector<functionLine>& functionLines, string className,
 // Detect whether a line is a function line
 bool isFunctionLine(const string& line);
 
+// Print out the formatted .cpp file
+void printCpp(string inputFileName, string templateLine,
+              vector<string> templateParams, string className,
+              vector<functionLine> functionLines);
+
 
 // Main
 int main()
@@ -50,36 +56,17 @@ int main()
     vector<string> templateParams;
     getTemplateLine(templateLine, templateParams, fin);
 
-    // **For testing purposes**
-    // Print out the template line and parameters
-    cout << endl << "\"" << templateLine << "\"" << endl
-         << "Template parameters: ";
-    for(int i = 0; i < templateParams.size(); ++i)
-        cout << templateParams[i] << " ";
-    cout << endl << endl;
-    
     // Look for the class line
     string className;
     getClassName(className, fin);
-
-    // **For testing purposes**
-    // Print out the class name
-    cout << className << endl
-         << endl;
 
     // Look for function lines
     vector<functionLine> functionLines;
     getFunctionLines(functionLines, className, fin);
 
-    // **For testing purposes**
-    // Print out all the function lines
-    for(int i = 0; i < functionLines.size(); ++i)
-    {
-        if(functionLines[i].returnType != "")
-            cout << functionLines[i].returnType << " ";
-        cout << functionLines[i].header << endl;
-    }
-    cout << endl;
+    // Output the .cpp file
+    printCpp(inputFileName, templateLine, templateParams,
+             className, functionLines);
 
     return 0;
 }
@@ -307,4 +294,57 @@ bool isFunctionLine(const string& line)
 
     // If there were none, return false
     return false;
+}
+
+
+/*
+    printCpp
+
+    Print out the formatted .cpp file, with all the templated function stubs.
+*/
+void printCpp(string inputFileName, string templateLine,
+              vector<string> templateParams, string className,
+              vector<functionLine> functionLines)
+{
+    // Create the output file name from the input file name
+    string outputFileName = "";
+    int index = 0;
+    while(inputFileName[index] != '.')
+        outputFileName += inputFileName[index++];
+    outputFileName += ".cpp";
+
+    // For debugging
+    cout << "Output File Name is " << outputFileName << "." << endl
+         << "Go? ";
+    char c;
+    cin >> c;
+
+    // Open the output file
+    ofstream fout;
+    fout.open(outputFileName.c_str());
+
+    // Print the .h include
+    fout << "#include \"" << inputFileName << "\"\n" << endl;
+
+    // Iterate through the function list
+    for(int i = 0; i < functionLines.size(); ++i)
+    {
+        // Print the template line
+        fout << templateLine << endl;
+
+        // Print the function header line
+        if(functionLines[i].returnType != "")
+            fout << functionLines[i].returnType << " ";
+        fout << className << "<";
+        for(int j = 0; j < templateParams.size(); ++j)
+        {
+            if(j != 0)
+                fout << ", ";
+            fout << templateParams[j];
+        }
+        fout << ">::" << functionLines[i].header;
+
+        // Print the braces
+        fout << "\n{\n}\n" << endl;
+    }
 }
