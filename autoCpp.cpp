@@ -11,11 +11,26 @@
 using namespace std;
 
 
+// A struct to hold function-line information
+struct functionLine
+{
+    string returnType;
+    string header;
+};
+
+
 // Extract the template line and template parameters
 void getTemplateLine(string& line, vector<string>& params, ifstream& fin);
 
 // Extract the class name
 void getClassName(string& className, ifstream& fin);
+
+// Extract the function lines
+void getFunctionLines(vector<functionLine>& functionLines, string className,
+                      ifstream& fin);
+
+// Detect whether a line is a function line
+bool isFunctionLine(const string& line);
 
 
 // Main
@@ -53,8 +68,18 @@ int main()
          << endl;
 
     // Look for function lines
-        // Store return type (if any),
-        //  and the rest of the function header separately
+    vector<functionLine> functionLines;
+    getFunctionLines(functionLines, className, fin);
+
+    // **For testing purposes**
+    // Print out all the function lines
+    for(int i = 0; i < functionLines.size(); ++i)
+    {
+        if(functionLines[i].returnType != "")
+            cout << functionLines[i].returnType << " ";
+        cout << functionLines[i].header << endl;
+    }
+    cout << endl;
 
     return 0;
 }
@@ -121,11 +146,13 @@ void getTemplateLine(string& line, vector<string>& params, ifstream& fin)
     }
 }
 
+
 /*
     getClassName
 
     Searches through the .h file until the class line is found. Passes the
-    class name back to the reference parameter.
+    class name back to the reference parameter. The ifstream object's position
+    is left at the end of the class line.
 */
 void getClassName(string& className, ifstream& fin)
 {
@@ -160,4 +187,124 @@ void getClassName(string& className, ifstream& fin)
             return;
         }
     }
+}
+
+
+/*
+    getFunctionLines
+
+    Searches through the .h file for all function lines, and passes back their
+    return types and the rest of each header to a vector through the reference
+    parameter.
+*/
+void getFunctionLines(vector<functionLine>& functionLines, string className,
+                      ifstream& fin)
+{
+    // Extract lines from the file until EOF, looking for functions
+    string tempLine;
+    while(getline(fin, tempLine))
+    {
+        // Detect if this is a function line
+        if(!isFunctionLine(tempLine))
+            continue;
+            
+        // Make a stringstream of the line
+        stringstream lineStream(tempLine);
+        
+        // Get to the first non-space character 
+        char tempChar;
+        int funcBeg = -1; 
+        do
+        {
+            ++funcBeg;
+            lineStream.get(tempChar);
+        }
+        while(tempChar == ' '); 
+
+        // Is it a destructor?
+        bool isDestructor = false;
+        if(tempChar == '~')
+            isDestructor = true;
+
+        // If not a destructor, check for constructor
+        bool isConstructor = false;
+        if(!isDestructor)
+        {
+            lineStream.seekg(funcBeg, lineStream.beg);
+            string firstFuncWord = "";
+            lineStream.get(tempChar);
+            while(tempChar != ' ' && tempChar != '(')
+            {
+                firstFuncWord += tempChar;
+                lineStream.get(tempChar);
+            }
+
+            if(firstFuncWord == className)
+                isConstructor = true;
+        }
+        
+        /* If it's a constructor or destructor, just grab the whole line up to
+           the semicolon */
+        if(isConstructor || isDestructor)
+        {
+            functionLine retFunc;
+            lineStream.seekg(funcBeg, lineStream.beg);
+            getline(lineStream, retFunc.header, ';');
+            retFunc.returnType = "";
+
+            functionLines.push_back(retFunc);
+
+            // And we're done
+            continue;
+        }
+
+        // Otherwise, find the location of the function name
+        lineStream.seekg(funcBeg, lineStream.beg);
+        int nameBeg = funcBeg;
+        lineStream.get(tempChar);
+        while(tempChar != '(')
+        {
+            // If we've hit a space,
+            if(tempChar == ' ')
+                // ...then that word wasn't the function name
+                nameBeg = lineStream.tellg();
+            lineStream.get(tempChar);
+        }
+
+        // Extract the return type and header
+        functionLine retFunc;
+        lineStream.seekg(funcBeg, lineStream.beg);
+        for(int i = funcBeg; i < nameBeg-1; ++i)
+        {
+            lineStream.get(tempChar);
+            retFunc.returnType += tempChar;
+        }
+
+        lineStream.seekg(nameBeg, lineStream.beg);
+        getline(lineStream, retFunc.header, ';');
+
+        // Add the function to the list, and we're done
+        functionLines.push_back(retFunc);
+    }
+}
+
+
+/*
+    isFunctionLine
+
+    Return whether or not a given string is a function line.
+*/
+bool isFunctionLine(const string& line)
+{
+    // Make a stringstream of the line
+    stringstream lineStream(line);
+
+    // Search for an open paren
+    char tempChar;
+    while(lineStream.get(tempChar))
+        if(tempChar == '(')
+            return true;
+
+    // If there were none, return false
+    return false;
 }
