@@ -68,6 +68,9 @@ int main()
     printCpp(inputFileName, templateLine, templateParams,
              className, functionLines);
 
+    // Done
+    cout << "Done." << endl << endl;
+
     return 0;
 }
 
@@ -312,12 +315,6 @@ void printCpp(string inputFileName, string templateLine,
     while(inputFileName[index] != '.')
         outputFileName += inputFileName[index++];
     outputFileName += ".cpp";
-
-    // For debugging
-    cout << "Output File Name is " << outputFileName << "." << endl
-         << "Go? ";
-    char c;
-    cin >> c;
 
     // Open the output file
     ofstream fout;
