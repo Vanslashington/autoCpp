@@ -166,7 +166,8 @@ void getClassName(string& className, ifstream& fin)
 
             // Extract the class name
             className = "";
-            while(tempChar != ' ' && tempChar != '\n' && tempChar != '{')
+            while(tempStream.good() &&
+                  tempChar != ' ' && tempChar != '\n' && tempChar != '{')
             {
                 className += tempChar;
                 tempStream.get(tempChar);
